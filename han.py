@@ -15,7 +15,7 @@ class HierarchicalAttentionNetwork(object):
                  num_units):
 
         self.input_x = tf.placeholder(tf.int32, [None, sequence_len], name='input_x')
-        self.input_y = tf.placeholder(tf.int32, [num_classes], name='input_y')
+        self.input_y = tf.placeholder(tf.float32, [num_classes], name='input_y')
         self.dropout_keep_rate = tf.placeholder(tf.float32, name='dropout_keep_rate')
 
         # word to vector layer
