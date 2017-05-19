@@ -1,14 +1,14 @@
 import functools
 
 
-def lazy_property(function):
-    attribute = '_cache_' + function.__name__
+def lazy_property(func):
+    attribute = '_cache_' + func.__name__
 
     @property
-    @functools.wraps(function)
+    @functools.wraps(func)
     def decorator(self):
         if not hasattr(self, attribute):
-            setattr(self, attribute, function(self))
+            setattr(self, attribute, func(self))
         return getattr(self, attribute)
 
     return decorator

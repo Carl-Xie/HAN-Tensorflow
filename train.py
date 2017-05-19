@@ -5,7 +5,6 @@ from han import HAN
 import tensorflow as tf
 import os
 
-
 # Parameters
 # ==================================================
 
