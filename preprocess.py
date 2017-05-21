@@ -5,6 +5,7 @@ from collections import Counter
 import nltk
 import os
 import re
+import random
 
 
 def clean_str(string):
@@ -27,7 +28,9 @@ def clean_str(string):
     string = re.sub(r"\s{2,}", " ", string)
     return string.strip().lower()
 
-DOC_SEPARATOR = '___END___OF___DOCUMENT___'
+MAX_WORD_PER_SENTENCE = 20
+MAX_SENTENCE_PER_DOC = 20
+MIN_FREQ_WORD_NUM = 5
 
 
 def process(pos_docs, neg_docs, retain_freq_num):
@@ -41,8 +44,8 @@ def process(pos_docs, neg_docs, retain_freq_num):
             if v >= n:
                 num += 1
         return num
-    print('总共词汇数：%s' % len(counter))
-    print('词频超过4的个数：%s' % freq(retain_freq_num))
+    print('number of vocabulary：%s' % len(counter))
+    print('number of frequency more than %d：%s' % (retain_freq_num, freq(retain_freq_num)))
 
     def process_doc(docs_processed):
         for doc_id in range(len(docs_processed)):
@@ -62,9 +65,15 @@ def split_to_words(documents):
     counter = Counter()
     for doc in documents:
         document = []
+        discard = False
         for sentence in doc:
             n_sentence = []
             words = clean_str(sentence).split(" ")
+            # if any sentence's length is over  MAX_WORD_PER_SENTENCE,
+            # discard the whole document for simplicity
+            if len(words) > MAX_WORD_PER_SENTENCE:
+                discard = True
+                break
             for word in words:
                 word = word.strip()
                 if word:
@@ -72,7 +81,9 @@ def split_to_words(documents):
                     counter[word] += 1
             if n_sentence:
                 document.append(n_sentence)
-        if document:
+        # only accept document that has more than one sentence and less than MAX_SENTENCE_PER_DOC,
+        # again, for simplicity's sake
+        if 1 < len(document) <= MAX_SENTENCE_PER_DOC and not discard:
             new_documents.append(document)
     return new_documents, counter
 
@@ -81,6 +92,8 @@ def read(dir_path):
     sent_tokenizer = nltk.tokenize.PunktSentenceTokenizer()
     documents = []
     for filename in os.listdir(dir_path):
+        if filename.startswith('.'):
+            continue
         file_path = os.path.join(dir_path, filename)
         with open(file_path, 'r', encoding='utf-8') as fp:
             line = fp.readline()
@@ -89,14 +102,28 @@ def read(dir_path):
     return documents
 
 
-def write_doc(docs, vocab, filename):
-    docs = sorted(docs, key=lambda x: len(x))
+def write_doc(pos_docs, neg_docs, vocab, filename):
+    docs = [(1, doc) for doc in pos_docs] + [(0, doc) for doc in neg_docs]
+    len_to_data = {}
+    for doc in docs:
+        doc_len = len(doc[1])
+        if doc_len in len_to_data:
+            len_to_data[doc_len].append(doc)
+        else:
+            len_to_data[doc_len] = [doc]
+    for value in len_to_data.values():
+        random.shuffle(value)
+    keys = list(len_to_data.keys())
+    sorted_docs = []
+    for key in sorted(keys):
+        sorted_docs.extend(len_to_data[key])
     with open(filename, 'w') as f:
-        for doc in docs:
-            for sentence in doc:
+        for content in sorted_docs:
+            line = '%d:' % content[0]
+            for sentence in content[1]:
                 sentence = [str(vocab[word]) for word in sentence]
-                f.write(','.join(sentence)+'\n')
-            f.write('\n')
+                line += ','.join(sentence) + '#'
+            f.write(line[:-1]+'\n')
         f.flush()
 
 
@@ -109,7 +136,7 @@ def write_vocab(vocab, vocab_file):
 def pre_process(pos_dir, neg_dir, save_dir):
     pos = read(pos_dir)
     neg = read(neg_dir)
-    pos_processed, neg_processed = process(pos, neg, 4)
+    pos_processed, neg_processed = process(pos, neg, MIN_FREQ_WORD_NUM)
     word_index = 1
     vocab = {}
     for doc in pos_processed:
@@ -132,23 +159,20 @@ def pre_process(pos_dir, neg_dir, save_dir):
         doc_len.append(len(doc))
         for sen in doc:
             sentence_len.append(len(sen))
-    print('最长文档句子数：%s' % max(doc_len))
-    print('最短文档句子数：%s' % min(doc_len))
-    print('平均文档句子数：%s' % (float(sum(doc_len))/len(doc_len)))
+    print('total number of documents: %s, pos: %s, neg: %s' %
+          (len(all_docs), len(pos_processed), len(neg_processed)))
+    print('max num of document sentences：%s' % max(doc_len))
+    print('min num of document sentences：%s' % min(doc_len))
+    print('avg num of document sentences：%s' % (float(sum(doc_len))/len(doc_len)))
 
-    print('最长句子词数：%s' % max(sentence_len))
-    print('最短句子词数：%s' % min(sentence_len))
-    print('平均句子词数：%s' % (float(sum(sentence_len))/len(sentence_len)))
+    print('max num of sentence words：%s' % max(sentence_len))
+    print('min num of sentence words：%s' % min(sentence_len))
+    print('avg num of sentence words：%s' % (float(sum(sentence_len))/len(sentence_len)))
 
-    write_doc(pos_processed, vocab, save_dir+'train_pos.dat')
-    write_doc(neg_processed, vocab, save_dir+'train_neg.dat')
+    write_doc(pos_processed, neg_processed, vocab, save_dir+'data.dat')
     write_vocab(vocab, save_dir+'vocab.txt')
 
 
-def load_data(pos_file, neg_file):
-    pass
-
-
 if __name__ == '__main__':
-    # pre_process('D:/data/train/neg/', 'D:/data/train/pos/', 'D:/data/train/')
-    pass
+    path = '/Users/carlxie/Downloads/data/train/'
+    pre_process(path+'neg/', path+'pos/', path)
