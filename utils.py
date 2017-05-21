@@ -16,9 +16,9 @@ def lazy_property(func):
 
 
 def padding_batch_documents(lst):
-    sentence_max_len = max([max([max(sen) for sen in doc]) for doc in lst])
+    sentence_max_len = max([max([len(sen) for sen in doc]) for doc in lst])
     sentence_max_num = max(map(len, lst))
-    result = np.zeros([len(lst), sentence_max_num, sentence_max_len])
+    result = np.zeros([len(lst), sentence_max_num, sentence_max_len], dtype=np.int32)
     for i, row in enumerate(lst):
         for j, col in enumerate(row):
             for k, val in enumerate(col):

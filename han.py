@@ -71,12 +71,20 @@ class HAN(object):
         # get the side effect
         self.__prediction = self.prediction
         self.__loss = self.loss
+        self.__train_acc = self.training_accuracy
 
     @lazy_property
     def loss(self):
-        # shape = [batch_size, num_classes]
-        true_label_prob = self.prediction * self.input_y
-        return -tf.reduce_mean(tf.log(tf.reduce_sum(true_label_prob, axis=1)))
+        cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=self.input_y,
+                                                                logits=self.prediction,
+                                                                name='cross_entropy')
+        return tf.reduce_mean(cross_entropy, name='loss')
+
+    @lazy_property
+    def training_accuracy(self):
+        pred = tf.argmax(self.prediction, axis=1, name='predict_label')
+        actual = tf.argmax(self.input_y, axis=1, name='actual_label')
+        return 1 - tf.reduce_mean(tf.cast(tf.abs(pred - actual), tf.float32))
 
     @lazy_property
     def prediction(self):
@@ -118,8 +126,7 @@ class HAN(object):
         with tf.name_scope('document_prediction'):
             W_c = tf.Variable(tf.truncated_normal([self.hidden_size * 2, self.num_classes]), name='class_weights')
             b_c = tf.Variable(tf.truncated_normal([self.num_classes]), name='class_biases')
-            score = tf.matmul(document_vectors, W_c) + b_c
-            return tf.nn.softmax(score, name='prediction')
+            return tf.matmul(document_vectors, W_c) + b_c
 
     def _word_encoder(self, embedded_x):
         with tf.variable_scope('word_encoder'):

@@ -5,6 +5,7 @@ from utils import padding_batch_documents
 
 import tensorflow as tf
 import os
+import time
 
 
 # Data loading params
@@ -15,7 +16,7 @@ tf.flags.DEFINE_integer("vocab_size", 4196, "vocabulary size")
 tf.flags.DEFINE_integer("num_classes", 2, "number of classes")
 tf.flags.DEFINE_integer("num_examples", 856, "number of examples")
 # Model Hyper parameters
-tf.flags.DEFINE_integer("embedding_size", 100, "Dimensionality of character embedding (default: 200)")
+tf.flags.DEFINE_integer("embedding_size", 120, "Dimensionality of character embedding (default: 200)")
 tf.flags.DEFINE_integer("hidden_size", 50, "Dimensionality of GRU hidden layer (default: 50)")
 tf.flags.DEFINE_integer("word_context_size", 100, "word context vector size at word attention layer")
 tf.flags.DEFINE_integer("sentence_context_size", 100, "sentence context vector at sentence attention layer")
@@ -23,10 +24,12 @@ tf.flags.DEFINE_integer("sentence_context_size", 100, "sentence context vector a
 # Training parameters
 tf.flags.DEFINE_integer("batch_size", 64, "Batch Size (default: 64)")
 tf.flags.DEFINE_integer("num_epochs", 10, "Number of training epochs (default: 50)")
-tf.flags.DEFINE_integer("checkpoint_every", 100, "Save model after this many steps (default: 100)")
+tf.flags.DEFINE_integer("checkpoint_every", 50, "Save model after this many steps (default: 50)")
 tf.flags.DEFINE_integer("num_checkpoints", 5, "Number of checkpoints to store (default: 5)")
-tf.flags.DEFINE_float("learning_rate", 1e-2, "learning rate")
-tf.flags.DEFINE_float("max_grad_norm", 15, "max grad norm to prevent gradient explode")
+tf.flags.DEFINE_float("learning_rate", 0.01, "learning rate")
+tf.flags.DEFINE_float("decay_steps", 10, "decay steps")
+tf.flags.DEFINE_float("decay_rate", 0.99, "decay rate")
+tf.flags.DEFINE_float("max_grad_norm", 10, "max grad norm to prevent gradient explode")
 
 
 FLAGS = tf.flags.FLAGS
@@ -35,7 +38,8 @@ FLAGS = tf.flags.FLAGS
 file_queue = tf.train.string_input_producer([FLAGS.data_dir])
 reader = tf.TextLineReader()
 _, line = reader.read(file_queue)
-capacity = 10 * FLAGS.batch_size
+capacity = 12 * FLAGS.batch_size
+min_after_dequeue = 10 * FLAGS.batch_size
 data_batch = tf.train.batch([line], FLAGS.batch_size, capacity=capacity)
 
 
@@ -64,7 +68,9 @@ def main(_):
 
         # Define Training procedure
         global_step = tf.Variable(0, name="global_step", trainable=False)
-        optimizer = tf.train.AdamOptimizer(FLAGS.learning_rate)
+        learning_rate = tf.train.exponential_decay(FLAGS.learning_rate, global_step,
+                                                   FLAGS.decay_steps, FLAGS.decay_rate)
+        optimizer = tf.train.AdamOptimizer(learning_rate)
         gradients = tf.gradients(han.loss, tf.trainable_variables())
         clipped_gradients, _ = tf.clip_by_global_norm(gradients, FLAGS.max_grad_norm)
         grads_and_vars = tuple(zip(clipped_gradients, tf.trainable_variables()))
@@ -92,6 +98,7 @@ def main(_):
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
         for epoch in range(FLAGS.num_epochs):
             for _ in range(FLAGS.num_examples // FLAGS.batch_size):
+                now = time.time()
                 x, y = decode(data_batch.eval(session=sess))
                 feed_dict = {
                     han.input_x: x,
@@ -99,10 +106,13 @@ def main(_):
                     han.max_sentence_length: len(x[0][0]),
                     han.max_sentence_num: len(x[0])
                 }
-                _, summary, step, loss = sess.run(
-                    [train_op, summary_op, global_step, han.loss], feed_dict=feed_dict)
-
-                print("step %s, current loss = %s" % (step, loss))
+                print('current data shape: [%s,%s,%s]' % (FLAGS.batch_size, len(x[0]), len(x[0][0])))
+                _, summary, step, loss, acc, lr = sess.run(
+                    [train_op, summary_op, global_step, han.loss, han.training_accuracy, learning_rate],
+                    feed_dict=feed_dict)
+                time_pass = time.time() - now
+                print("takes %s secs to run step %s, current loss = %s, accuracy=%s, lr=%s"
+                      % (time_pass, step, loss, acc, lr))
 
                 summary_writer.add_summary(summary=summary, global_step=step)
 
