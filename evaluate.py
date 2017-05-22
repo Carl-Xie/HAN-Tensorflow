@@ -7,6 +7,8 @@ import numpy as np
 
 
 tf.flags.DEFINE_string("data_path", "data/data.dat", "data file path")
+
+# change the checkpoint_dir to your own checkpoint directory
 tf.flags.DEFINE_string("checkpoint_dir", "./runs/1495449780/checkpoints/model/", "checkpoint directory")
 tf.flags.DEFINE_integer("num_examples", 856, "number of examples")
 FLAGS = tf.flags.FLAGS

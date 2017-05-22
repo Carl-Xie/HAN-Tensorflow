@@ -28,8 +28,8 @@ def clean_str(string):
     string = re.sub(r"\s{2,}", " ", string)
     return string.strip().lower()
 
-MAX_WORD_PER_SENTENCE = 20
-MAX_SENTENCE_PER_DOC = 20
+MAX_WORD_PER_SENTENCE = 40
+MAX_SENTENCE_PER_DOC = 30
 MIN_FREQ_WORD_NUM = 5
 
 
@@ -171,6 +171,10 @@ def pre_process(pos_dir, neg_dir, save_dir):
 
     write_doc(pos_processed, neg_processed, vocab, save_dir+'data.dat')
     write_vocab(vocab, save_dir+'vocab.txt')
+
+
+def load_dev():
+    return None, None
 
 
 if __name__ == '__main__':
