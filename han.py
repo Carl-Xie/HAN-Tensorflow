@@ -71,7 +71,7 @@ class HAN(object):
         self.__prediction = self.prediction
         self.__loss = self.loss
         self.__inference = self.inference
-        self.__train_acc = self.training_accuracy
+        self.__accuracy = self.accuracy
 
     @lazy_property
     def loss(self):
@@ -82,8 +82,8 @@ class HAN(object):
             return tf.reduce_mean(cross_entropy, name='loss')
 
     @lazy_property
-    def training_accuracy(self):
-        with tf.name_scope('training_accuracy'):
+    def accuracy(self):
+        with tf.name_scope('accuracy'):
             actual = tf.argmax(self.input_y, axis=1, name='actual_label')
             return 1 - tf.reduce_mean(tf.cast(tf.abs(self.inference - actual), tf.float32))
 

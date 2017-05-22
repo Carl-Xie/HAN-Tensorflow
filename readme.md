@@ -31,3 +31,7 @@ from:
 
 and is used for sanity check. You will see the model overfitting quickly within 10 epochs.
 
+Acknowledge:
+
+The training code is mostly adapted from Denny's [TextCNN](http://www.wildml.com/2015/12/implementing-a-cnn-for-text-classification-in-tensorflow/)
+

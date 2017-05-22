@@ -10,8 +10,6 @@ import time
 
 # Data loading params
 tf.flags.DEFINE_string("data_dir", "data/data.dat", "data directory")
-tf.flags.DEFINE_string("checkpoint_dir", "./", "check point directory")
-tf.flags.DEFINE_string("summary_dir", "./summaries/", "summary directory")
 tf.flags.DEFINE_integer("vocab_size", 4196, "vocabulary size")
 tf.flags.DEFINE_integer("num_classes", 2, "number of classes")
 tf.flags.DEFINE_integer("num_examples", 856, "number of examples")
@@ -63,6 +61,11 @@ def main(_):
         grads_and_vars = tuple(zip(clipped_gradients, tf.trainable_variables()))
         train_op = optimizer.apply_gradients(grads_and_vars, global_step=global_step)
 
+        # Output directory for models and summaries
+        timestamp = str(int(time.time()))
+        out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
+        print("Writing to {}\n".format(out_dir))
+
         grad_summaries = []
         for g, v in grads_and_vars:
             if g is not None:
@@ -70,44 +73,70 @@ def main(_):
                 grad_summaries.append(grad_hist_summary)
         grad_summaries_merged = tf.summary.merge(grad_summaries)
         loss_summary = tf.summary.scalar("loss", han.loss)
-        accuracy_summary = tf.summary.scalar("accuracy", han.training_accuracy)
-        summary_op = tf.summary.merge([loss_summary, accuracy_summary, grad_summaries_merged])
-        summary_writer = tf.summary.FileWriter(FLAGS.summary_dir, sess.graph)
+        accuracy_summary = tf.summary.scalar("accuracy", han.accuracy)
+
+        train_summary_op = tf.summary.merge([loss_summary, accuracy_summary, grad_summaries_merged])
+        train_summary_dir = os.path.join(out_dir, "summaries", "train")
+        train_summary_writer = tf.summary.FileWriter(train_summary_dir, sess.graph)
+
+        dev_summary_op = tf.summary.merge([loss_summary, accuracy_summary])
+        dev_summary_dir = os.path.join(out_dir, "summaries", "dev")
+        dev_summary_writer = tf.summary.FileWriter(dev_summary_dir, sess.graph)
 
         sess.run(tf.global_variables_initializer())
 
-        checkpoint_dir = os.path.abspath(os.path.join(FLAGS.checkpoint_dir, "checkpoints"))
+        checkpoint = os.path.abspath(os.path.join(out_dir, "checkpoints"))
+        checkpoint_dir = os.path.join(checkpoint, "model")
         saver = tf.train.Saver(tf.global_variables(), max_to_keep=FLAGS.num_checkpoints)
 
         # try to load restore from last train
         load(saver=saver, sess=sess, checkpoint_dir=checkpoint_dir)
+
+        def dev_step(x_batch, y_batch):
+            now = time.time()
+            feed_dict = {
+                han.input_x: x_batch,
+                han.input_y: y_batch,
+                han.batch_size: FLAGS.batch_size,
+                han.max_sentence_length: len(x_batch[0][0]),
+                han.max_sentence_num: len(x_batch[0])
+            }
+            print('current data shape: [%s,%s,%s]' % (FLAGS.batch_size, len(x_batch[0]), len(x_batch[0][0])))
+            summary, loss, acc = sess.run([dev_summary_op, han.loss, han.accuracy],
+                                          feed_dict=feed_dict)
+            time_pass = time.time() - now
+            print("takes %s secs, current loss = %s, accuracy=%s"
+                  % (time_pass, loss, acc))
+            dev_summary_writer.add_summary(summary=summary, global_step=step)
+
+        def train_step(x_batch, y_batch):
+            now = time.time()
+            feed_dict = {
+                han.input_x: x_batch,
+                han.input_y: y_batch,
+                han.batch_size: FLAGS.batch_size,
+                han.max_sentence_length: len(x_batch[0][0]),
+                han.max_sentence_num: len(x_batch[0])
+            }
+            print('current data shape: [%s,%s,%s]' % (FLAGS.batch_size, len(x_batch[0]), len(x_batch[0][0])))
+            _, summary, step, loss, acc = sess.run(
+                [train_op, train_summary_op, global_step, han.loss, han.accuracy],
+                feed_dict=feed_dict)
+            time_pass = time.time() - now
+            print("takes %s secs to run step %s, current loss = %s, accuracy=%s"
+                  % (time_pass, step, loss, acc))
+
+            train_summary_writer.add_summary(summary=summary, global_step=step)
+            if step % FLAGS.checkpoint_every == 0:
+                save(saver, sess, checkpoint_dir, step)
 
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
         for epoch in range(FLAGS.num_epochs):
             print('current epoch %s' % (epoch+1))
             for _ in range(FLAGS.num_examples // FLAGS.batch_size):
-                now = time.time()
                 x, y = decode_batch(data_batch.eval(session=sess))
-                feed_dict = {
-                    han.input_x: x,
-                    han.input_y: y,
-                    han.batch_size: FLAGS.batch_size,
-                    han.max_sentence_length: len(x[0][0]),
-                    han.max_sentence_num: len(x[0])
-                }
-                print('current data shape: [%s,%s,%s]' % (FLAGS.batch_size, len(x[0]), len(x[0][0])))
-                _, summary, step, loss, acc = sess.run(
-                    [train_op, summary_op, global_step, han.loss, han.training_accuracy],
-                    feed_dict=feed_dict)
-                time_pass = time.time() - now
-                print("takes %s secs to run step %s, current loss = %s, accuracy=%s"
-                      % (time_pass, step, loss, acc))
-
-                summary_writer.add_summary(summary=summary, global_step=step)
-
-                if step % FLAGS.checkpoint_every == 0:
-                    save(saver, sess, checkpoint_dir, step)
+                train_step(x, y)
 
         coord.request_stop()
         coord.join(threads)
