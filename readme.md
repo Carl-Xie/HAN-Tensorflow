@@ -14,17 +14,20 @@ It assumes you know the basic operations in tensorflow, if not, you should
 check the [official guide](https://www.tensorflow.org/) first.
 
 The model's hyper-parameters is not being tuned, and the small dataset is extracted
-from
-@InProceedings{maas-EtAl:2011:ACL-HLT2011,
-  author    = {Maas, Andrew L.  and  Daly, Raymond E.  and  Pham, Peter T.  and  Huang, Dan  and  Ng, Andrew Y.  and  Potts, Christopher},
-  title     = {Learning Word Vectors for Sentiment Analysis},
-  booktitle = {Proceedings of the 49th Annual Meeting of the Association for Computational Linguistics: Human Language Technologies},
-  month     = {June},
-  year      = {2011},
-  address   = {Portland, Oregon, USA},
-  publisher = {Association for Computational Linguistics},
-  pages     = {142--150},
-  url       = {http://www.aclweb.org/anthology/P11-1015}
+from: 
+
+@InProceedings{
+&#8194;maas-EtAl:2011:ACL-HLT2011,
+&#8194;author    = {Maas, Andrew L.  and  Daly, Raymond E.  and  Pham, Peter T.  and  Huang, Dan  and  Ng, Andrew Y.  and  Potts, Christopher},
+&#8194;title     = {Learning Word Vectors for Sentiment Analysis},
+&#8194;booktitle = {Proceedings of the 49th Annual Meeting of the Association for Computational Linguistics: Human Language Technologies},
+&#8194;month     = {June},
+&#8194;year      = {2011},
+&#8194;address   = {Portland, Oregon, USA},
+&#8194;publisher = {Association for Computational Linguistics},
+&#8194;pages     = {142--150},
+&#8194;url       = {http://www.aclweb.org/anthology/P11-1015}
 }
+
 and is used for sanity check. You will see the model overfitting quickly within 10 epochs.
 
