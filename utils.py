@@ -25,3 +25,27 @@ def padding_batch_documents(lst):
                 result[i][j][k] = val
     return result
 
+
+def decode_batch(data):
+    x = []
+    y = []
+    for datum in data:
+        label_sentences = datum.decode().split(':')
+        label = int(label_sentences[0])
+        sentences = label_sentences[1].split('#')
+        sentences = [[int(word) for word in sen.split(',')] for sen in sentences]
+        x.append(sentences)
+        y.append([0, 1] if label == 1 else [1, 0])
+    return padding_batch_documents(x), y
+
+
+def decode(datum):
+    x = []
+    y = []
+    label_sentences = datum.decode().split(':')
+    label = int(label_sentences[0])
+    sentences = label_sentences[1].split('#')
+    sentences = [[int(word) for word in sen.split(',')] for sen in sentences]
+    x.append(sentences)
+    y.append([0, 1] if label == 1 else [1, 0])
+    return padding_batch_documents(x), y

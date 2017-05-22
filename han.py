@@ -46,7 +46,6 @@ class HAN(object):
     def __init__(self,
                  vocab_size,
                  num_classes,
-                 batch_size=64,
                  embedding_size=200,
                  hidden_size=50,
                  word_ctx_size=100,
@@ -58,19 +57,20 @@ class HAN(object):
         self.word_ctx_size = word_ctx_size
         self.sentence_ctx_size = sentence_ctx_size
         self.num_classes = num_classes
-        self.batch_size = batch_size
 
         with tf.name_scope('placeholder'):
             self.max_sentence_num = tf.placeholder(tf.int32, name='max_sentence_num')
             self.max_sentence_length = tf.placeholder(tf.int32, name='max_sentence_length')
+            self.batch_size = tf.placeholder(tf.int32, name='batch_size')
             # input_x shape = [batch_size, num_sentence, sentence_length]
-            self.input_x = tf.placeholder(tf.int32, [batch_size, None, None], name='input_x')
+            self.input_x = tf.placeholder(tf.int32, [None, None, None], name='input_x')
             # input_y shape = [batch_size, one_hot_class_coding]
-            self.input_y = tf.placeholder(tf.float32, [batch_size, num_classes], name='input_y')
+            self.input_y = tf.placeholder(tf.float32, [None, num_classes], name='input_y')
 
         # get the side effect
         self.__prediction = self.prediction
         self.__loss = self.loss
+        self.__inference = self.inference
         self.__train_acc = self.training_accuracy
 
     @lazy_property
@@ -82,9 +82,12 @@ class HAN(object):
 
     @lazy_property
     def training_accuracy(self):
-        pred = tf.argmax(self.prediction, axis=1, name='predict_label')
         actual = tf.argmax(self.input_y, axis=1, name='actual_label')
-        return 1 - tf.reduce_mean(tf.cast(tf.abs(pred - actual), tf.float32))
+        return 1 - tf.reduce_mean(tf.cast(tf.abs(self.inference - actual), tf.float32))
+
+    @lazy_property
+    def inference(self):
+        return tf.argmax(self.prediction, axis=1, name='infer_label')
 
     @lazy_property
     def prediction(self):

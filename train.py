@@ -1,7 +1,7 @@
 # encoding=utf-8
 
 from han import HAN
-from utils import padding_batch_documents
+from utils import decode_batch
 
 import tensorflow as tf
 import os
@@ -40,27 +40,14 @@ reader = tf.TextLineReader()
 _, line = reader.read(file_queue)
 capacity = 12 * FLAGS.batch_size
 min_after_dequeue = 10 * FLAGS.batch_size
-data_batch = tf.train.batch([line], FLAGS.batch_size, capacity=capacity)
-
-
-def decode(data):
-    x = []
-    y = []
-    for datum in data:
-        label_sentences = datum.decode().split(':')
-        label = int(label_sentences[0])
-        sentences = label_sentences[1].split('#')
-        sentences = [[int(word) for word in sen.split(',')] for sen in sentences]
-        x.append(sentences)
-        y.append([0, 1] if label == 1 else [1, 0])
-    return padding_batch_documents(x), y
+data_batch = tf.train.shuffle_batch([line], FLAGS.batch_size,
+                                    min_after_dequeue=min_after_dequeue, capacity=capacity)
 
 
 def main(_):
     with tf.Session() as sess:
         han = HAN(vocab_size=FLAGS.vocab_size,
                   num_classes=FLAGS.num_classes,
-                  batch_size=FLAGS.batch_size,
                   embedding_size=FLAGS.embedding_size,
                   hidden_size=FLAGS.hidden_size,
                   word_ctx_size=FLAGS.word_context_size,
@@ -97,12 +84,14 @@ def main(_):
         coord = tf.train.Coordinator()
         threads = tf.train.start_queue_runners(sess=sess, coord=coord)
         for epoch in range(FLAGS.num_epochs):
+            print('current epoch %s' % (epoch+1))
             for _ in range(FLAGS.num_examples // FLAGS.batch_size):
                 now = time.time()
-                x, y = decode(data_batch.eval(session=sess))
+                x, y = decode_batch(data_batch.eval(session=sess))
                 feed_dict = {
                     han.input_x: x,
                     han.input_y: y,
+                    han.batch_size: FLAGS.batch_size,
                     han.max_sentence_length: len(x[0][0]),
                     han.max_sentence_num: len(x[0])
                 }
