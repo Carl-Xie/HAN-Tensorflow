@@ -70,7 +70,8 @@ def main(_):
                 grad_summaries.append(grad_hist_summary)
         grad_summaries_merged = tf.summary.merge(grad_summaries)
         loss_summary = tf.summary.scalar("loss", han.loss)
-        summary_op = tf.summary.merge([loss_summary, grad_summaries_merged])
+        accuracy_summary = tf.summary.scalar("accuracy", han.training_accuracy)
+        summary_op = tf.summary.merge([loss_summary, accuracy_summary, grad_summaries_merged])
         summary_writer = tf.summary.FileWriter(FLAGS.summary_dir, sess.graph)
 
         sess.run(tf.global_variables_initializer())
@@ -96,12 +97,12 @@ def main(_):
                     han.max_sentence_num: len(x[0])
                 }
                 print('current data shape: [%s,%s,%s]' % (FLAGS.batch_size, len(x[0]), len(x[0][0])))
-                _, summary, step, loss, acc, lr = sess.run(
-                    [train_op, summary_op, global_step, han.loss, han.training_accuracy, learning_rate],
+                _, summary, step, loss, acc = sess.run(
+                    [train_op, summary_op, global_step, han.loss, han.training_accuracy],
                     feed_dict=feed_dict)
                 time_pass = time.time() - now
-                print("takes %s secs to run step %s, current loss = %s, accuracy=%s, lr=%s"
-                      % (time_pass, step, loss, acc, lr))
+                print("takes %s secs to run step %s, current loss = %s, accuracy=%s"
+                      % (time_pass, step, loss, acc))
 
                 summary_writer.add_summary(summary=summary, global_step=step)
 

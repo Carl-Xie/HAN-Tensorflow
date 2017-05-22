@@ -29,7 +29,7 @@ def main(_):
         max_sentence_length = sess.graph.get_operation_by_name("placeholder/max_sentence_length").outputs[0]
         max_sentence_num = sess.graph.get_operation_by_name("placeholder/max_sentence_num").outputs[0]
         batch_size = sess.graph.get_operation_by_name("placeholder/batch_size").outputs[0]
-        inference = sess.graph.get_operation_by_name("infer_label").outputs[0]
+        inference = sess.graph.get_operation_by_name("inference/inference").outputs[0]
 
         actual_labels = np.array([])
         infer_labels = np.array([])

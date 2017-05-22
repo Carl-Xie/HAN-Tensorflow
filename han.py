@@ -75,19 +75,22 @@ class HAN(object):
 
     @lazy_property
     def loss(self):
-        cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=self.input_y,
-                                                                logits=self.prediction,
-                                                                name='cross_entropy')
-        return tf.reduce_mean(cross_entropy, name='loss')
+        with tf.name_scope('loss'):
+            cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=self.input_y,
+                                                                    logits=self.prediction,
+                                                                    name='cross_entropy')
+            return tf.reduce_mean(cross_entropy, name='loss')
 
     @lazy_property
     def training_accuracy(self):
-        actual = tf.argmax(self.input_y, axis=1, name='actual_label')
-        return 1 - tf.reduce_mean(tf.cast(tf.abs(self.inference - actual), tf.float32))
+        with tf.name_scope('training_accuracy'):
+            actual = tf.argmax(self.input_y, axis=1, name='actual_label')
+            return 1 - tf.reduce_mean(tf.cast(tf.abs(self.inference - actual), tf.float32))
 
     @lazy_property
     def inference(self):
-        return tf.argmax(self.prediction, axis=1, name='infer_label')
+        with tf.name_scope('inference'):
+            return tf.argmax(self.prediction, axis=1, name='inference')
 
     @lazy_property
     def prediction(self):
