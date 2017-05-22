@@ -2,6 +2,7 @@ An implementation of Hierarchical Attention Networks,
 according to this paper https://www.cs.cmu.edu/~diyiy/docs/naacl16.pdf
 The following picture is the model architecture:
 ![](https://github.com/Carl-Xie/HAN-Tensorflow/blob/master/han.png)
+
 This implementation is more about learning how to use TensorFlow to build and train a model,
 specifically, you will learn how to:
     - build a model in a way that is readable and maintainable
