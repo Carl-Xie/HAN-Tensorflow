@@ -56,7 +56,7 @@ def main(_):
                   word_ctx_size=FLAGS.word_context_size,
                   sentence_ctx_size=FLAGS.sentence_context_size)
 
-        global_step = tf.Variable(0, name="global_step", trainable=False)
+        global_step = tf.train.get_or_create_global_step(sess.graph)
         timestamp = str(int(time.time()))
         out_dir = os.path.abspath(os.path.join(os.path.curdir, "runs", timestamp))
         print("Writing to {}\n".format(out_dir))
