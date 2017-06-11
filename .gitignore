@@ -1,0 +1,7 @@
+__pycache__
+*.[oa]
+*.pyc
+*.dat
+*.sqlite3
+.idea
+.DS_Store
