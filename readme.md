@@ -2,16 +2,17 @@ An implementation of Hierarchical Attention Networks
 ====================================================
 According to this paper https://www.cs.cmu.edu/~diyiy/docs/naacl16.pdf
 The following picture is the model's architecture:
+
 ![](https://github.com/Carl-Xie/HAN-Tensorflow/blob/master/han.png)
 
 This implementation is more about learning how to use TensorFlow to build and train a model,
 specifically, you will learn how to:
 
-    -  build a model in a way that is readable and maintainable
-    -  use tensorflow's reading pipeline to read data from file
-    -  train and test a model
-    -  write summaries and visualize with tensorboard
-    -  save and restore a model from checkpoint file
+    - build a model in a way that is readable and maintainable
+    - use tensorflow's reading pipeline to read data from file
+    - train and test a model
+    - write summaries and visualize with tensorboard
+    - save and restore a model from checkpoint file
 
 It assumes you know the basic operations in tensorflow, if not, you should
 check the [official guide](https://www.tensorflow.org/) first.
